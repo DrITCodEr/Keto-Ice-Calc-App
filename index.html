@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Eiskalkulator" />
+  <meta name="theme-color" content="#C9973A" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Eis Kalkulator</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #FFFAF4;
+      --warm: #FFF0DC;
+      --gold: #C9973A;
+      --gold-light: #EDD5B3;
+      --brown: #3D2B1F;
+      --text-muted: #A07850;
+    }
+
+    html, body {
+      height: 100%;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      background: linear-gradient(160deg, #FFF9F0 0%, #FFE8D6 100%);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top, 16px) 0 env(safe-area-inset-bottom, 16px);
+    }
+
+    /* ── Install banner ── */
+    #install-banner {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #3D2B1F;
+      color: #FFF8EC;
+      padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+      z-index: 999;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+      animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    #install-banner.show { display: flex; align-items: center; gap: 14px; }
+
+    #install-banner .banner-text { flex: 1; }
+    #install-banner .banner-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+    #install-banner .banner-sub { font-size: 12px; font-weight: 300; opacity: 0.75; }
+
+    #install-btn {
+      background: var(--gold);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-family: 'Lato', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #dismiss-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    /* iOS install hint */
+    #ios-hint {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #3D2B1F;
+      color: #FFF8EC;
+      padding: 18px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 999;
+      text-align: center;
+      animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    #ios-hint.show { display: block; }
+    #ios-hint strong { color: var(--gold); }
+    #ios-hint-close {
+      position: absolute;
+      top: 12px; right: 16px;
+      background: none; border: none;
+      color: rgba(255,255,255,0.5);
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    /* ── Main card ── */
+    .app {
+      width: 100%;
+      max-width: 430px;
+      padding: 0 20px 120px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 28px 0 24px;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--brown);
+      line-height: 1.05;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      font-size: 11px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Section label */
+    .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Flavor grid */
+    .flavors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .flavor {
+      border: none;
+      border-radius: 24px;
+      padding: 18px 10px 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+                  box-shadow 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    .flavor:active { transform: scale(0.93) !important; }
+
+    .flavor .icon { font-size: 36px; line-height: 1; }
+
+    .flavor .name {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    /* Amount section */
+    #step2 {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
+    }
+
+    #step2.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .presets {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .preset {
+      border: 1.5px solid var(--gold-light);
+      border-radius: 14px;
+      padding: 7px 16px;
+      background: transparent;
+      font-family: 'Lato', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .preset:active, .preset.active {
+      background: #F5E6C8;
+      border-color: var(--gold);
+      color: #7A5C1E;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    input[type=number] {
+      flex: 1;
+      border: 2px solid transparent;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font-family: 'Lato', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      background: #F5EDE0;
+      color: var(--brown);
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input[type=number]:focus {
+      border-color: var(--gold);
+      background: #FFF8EC;
+    }
+
+    input[type=number]::placeholder {
+      color: #C9B08A;
+      font-weight: 300;
+      font-size: 15px;
+    }
+
+    input[type=number].error {
+      border-color: #C0392B;
+      animation: shake 0.4s ease;
+    }
+
+    .go-btn {
+      border: none;
+      border-radius: 18px;
+      padding: 14px 22px;
+      font-family: 'Lato', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .go-btn:active { transform: scale(0.94); }
+
+    /* Result */
+    #result {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
+                  transform 0.45s cubic-bezier(0.22,1,0.36,1);
+      pointer-events: none;
+    }
+
+    #result.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .msg-box {
+      border-radius: 18px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .result-card {
+      border-radius: 26px;
+      padding: 22px 22px 8px;
+      margin-bottom: 14px;
+    }
+
+    .result-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .row-name { font-size: 14px; }
+
+    .row-val {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .row-unit { font-size: 12px; font-weight: 300; margin-left: 1px; }
+
+    .appetite {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-style: italic;
+      margin: 8px 0 20px;
+    }
+
+    .reset-btn {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 15px;
+      background: var(--gold-light);
+      color: #7A5C1E;
+      font-family: 'Lato', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .reset-btn:active { background: #D4B580; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+
+    @keyframes floatA {
+      0%,100% { transform: translateY(0) rotate(-4deg); }
+      50%     { transform: translateY(-10px) rotate(4deg); }
+    }
+    @keyframes floatB {
+      0%,100% { transform: translateY(0) rotate(3deg); }
+      50%     { transform: translateY(-7px) rotate(-3deg); }
+    }
+
+    .deco {
+      position: fixed;
+      font-size: 44px;
+      opacity: 0.12;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .deco1 { top: 60px;  right: 18px; animation: floatA 4s ease-in-out infinite; }
+    .deco2 { top: 200px; left: 10px;  animation: floatB 5s ease-in-out infinite; font-size: 28px; }
+    .deco3 { bottom: 140px; right: 14px; animation: floatA 3.5s ease-in-out infinite 1s; font-size: 32px; }
+  </style>
+</head>
+<body>
+
+  <span class="deco deco1">🍨</span>
+  <span class="deco deco2">✨</span>
+  <span class="deco deco3">🍧</span>
+
+  <!-- Android install banner -->
+  <div id="install-banner">
+    <div class="banner-text">
+      <div class="banner-title">🍦 Als App installieren</div>
+      <div class="banner-sub">Direkt vom Homescreen starten</div>
+    </div>
+    <button id="install-btn">Installieren</button>
+    <button id="dismiss-btn">✕</button>
+  </div>
+
+  <!-- iOS install hint -->
+  <div id="ios-hint">
+    <button id="ios-hint-close">✕</button>
+    Tippe auf <strong>Teilen ↑</strong> und dann auf<br>
+    <strong>„Zum Home-Bildschirm"</strong> um die App zu installieren.
+  </div>
+
+  <div class="app">
+    <header class="header">
+      <div class="eyebrow">Dr. Almonds</div>
+      <h1>Eis<br>Kalkulator</h1>
+      <div class="tagline">Eiscremezauber ✨</div>
+    </header>
+
+    <!-- Step 1 -->
+    <div class="label">① Sorte wählen</div>
+    <div class="flavors" id="flavors"></div>
+
+    <!-- Step 2 -->
+    <div id="step2">
+      <div class="label">② Menge eingeben</div>
+      <div class="presets" id="presets">
+        <button class="preset" onclick="setGrams(200)">200 g</button>
+        <button class="preset" onclick="setGrams(400)">400 g</button>
+        <button class="preset" onclick="setGrams(600)">600 g</button>
+        <button class="preset" onclick="setGrams(1000)">1000 g</button>
+      </div>
+      <div class="input-row">
+        <input id="gramInput" type="number" inputmode="numeric" placeholder="z.B. 500 g" min="1" />
+        <button class="go-btn" id="goBtn" onclick="calculate()">Los!</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result">
+      <div class="msg-box" id="msgBox"></div>
+      <div class="result-card" id="resultCard">
+        <div class="result-title" id="resultTitle"></div>
+        <div id="ingredients"></div>
+      </div>
+      <div class="appetite" id="appetite"></div>
+      <button class="reset-btn" onclick="reset()">↩ Neue Berechnung</button>
+    </div>
+  </div>
+
+  <script>
+    const FLAVORS = [
+      {
+        id: 1, name: "Vanille", emoji: "🍦",
+        color: "#F5E6C8", accent: "#C9973A", dark: "#7A5C1E",
+        bg: "linear-gradient(145deg,#FFF8EC,#F5E6C8)",
+        msg: "Du magst also Vanille – ich auch! 😄",
+        calc: g => ({
+          "Eiscremezauber":  Math.round(g / 6),
+          "Flüssige Sahne":  Math.round(g / 2),
+          "Wasser":          Math.round(g / 3),
+        })
+      },
+      {
+        id: 2, name: "Schoko", emoji: "🍫",
+        color: "#EDD5B3", accent: "#6B3A2A", dark: "#3D1F14",
+        bg: "linear-gradient(145deg,#F5EAE0,#D4A57A)",
+        msg: "Schoko … hmmm … ich auch! 😍",
+        calc: g => ({
+          "Eiscremezauber":  Math.round(g * 100 / 580),
+          "Flüssige Sahne":  Math.round(g * 250 / 580),
+          "Wasser":          Math.round(g * 200 / 580),
+          "Kakao Pulver":    Math.round(g * 30  / 580),
+        })
+      },
+      {
+        id: 3, name: "Erdbeere", emoji: "🍓",
+        color: "#FADADD", accent: "#C0392B", dark: "#7B1F1F",
+        bg: "linear-gradient(145deg,#FFF0F0,#FADADD)",
+        msg: "Erdbeere – na klar, ich sowieso! 🍓",
+        calc: g => ({
+          "Eiscremezauber":      Math.round(g * 100 / 700),
+          "Flüssige Sahne":      Math.round(g * 300 / 700),
+          "Pürierte Erdbeeren":  Math.round(g * 300 / 700),
+        })
+      },
+    ];
+
+    let selectedId = null;
+
+    // Build flavor buttons
+    const grid = document.getElementById("flavors");
+    FLAVORS.forEach(f => {
+      const btn = document.createElement("button");
+      btn.className = "flavor";
+      btn.id = "flavor-" + f.id;
+      btn.style.background = f.bg;
+      btn.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)";
+      btn.innerHTML = `<span class="icon">${f.emoji}</span><span class="name" style="color:${f.dark}">${f.name}</span>`;
+      btn.onclick = () => selectFlavor(f.id);
+      grid.appendChild(btn);
+    });
+
+    function selectFlavor(id) {
+      selectedId = id;
+      const f = FLAVORS.find(x => x.id === id);
+
+      // Update button styles
+      FLAVORS.forEach(fl => {
+        const b = document.getElementById("flavor-" + fl.id);
+        if (fl.id === id) {
+          b.style.boxShadow = `0 0 0 3px ${fl.accent}, 0 8px 24px ${fl.accent}40`;
+          b.style.transform = "scale(1.07)";
+        } else {
+          b.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)";
+          b.style.transform = "scale(1)";
+        }
+      });
+
+      // Update go-btn color
+      const go = document.getElementById("goBtn");
+      go.style.background = f.accent;
+      go.style.color = "#fff";
+      go.style.boxShadow = `0 4px 16px ${f.accent}55`;
+
+      // Show step 2
+      document.getElementById("step2").classList.add("visible");
+
+      // Hide result
+      document.getElementById("result").classList.remove("visible");
+
+      // Clear input
+      document.getElementById("gramInput").value = "";
+      document.querySelectorAll(".preset").forEach(p => p.classList.remove("active"));
+    }
+
+    function setGrams(v) {
+      document.getElementById("gramInput").value = v;
+      document.querySelectorAll(".preset").forEach(p => {
+        p.classList.toggle("active", parseInt(p.textContent) === v);
+      });
+    }
+
+    function calculate() {
+      const inp = document.getElementById("gramInput");
+      const g = parseInt(inp.value);
+      if (!g || g <= 0 || !selectedId) {
+        inp.classList.add("error");
+        setTimeout(() => inp.classList.remove("error"), 500);
+        return;
+      }
+
+      const f = FLAVORS.find(x => x.id === selectedId);
+      const items = f.calc(g);
+
+      // Populate result
+      document.getElementById("msgBox").textContent = f.msg;
+      document.getElementById("msgBox").style.background = f.color;
+      document.getElementById("msgBox").style.color = f.dark;
+
+      document.getElementById("resultCard").style.background = f.bg;
+      document.getElementById("resultCard").style.boxShadow = `0 8px 32px ${f.accent}30`;
+
+      document.getElementById("resultTitle").textContent = `Für ${g} g ${f.emoji} ${f.name}eis:`;
+      document.getElementById("resultTitle").style.color = f.dark;
+
+      const container = document.getElementById("ingredients");
+      container.innerHTML = "";
+      Object.entries(items).forEach(([name, amt]) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <span class="row-name" style="color:${f.dark}">${name}</span>
+          <span class="row-val" style="color:${f.accent}">${amt}<span class="row-unit">g</span></span>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById("appetite").textContent = "Guten Appetit! 🍦";
+      document.getElementById("appetite").style.color = f.dark;
+
+      // Animate in
+      const res = document.getElementById("result");
+      res.classList.remove("visible");
+      requestAnimationFrame(() => requestAnimationFrame(() => res.classList.add("visible")));
+      res.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function reset() {
+      selectedId = null;
+      document.getElementById("gramInput").value = "";
+      document.querySelectorAll(".preset").forEach(p => p.classList.remove("active"));
+      document.getElementById("step2").classList.remove("visible");
+      document.getElementById("result").classList.remove("visible");
+      FLAVORS.forEach(fl => {
+        const b = document.getElementById("flavor-" + fl.id);
+        b.style.boxShadow = "0 2px 10px rgba(0,0,0,0.08)";
+        b.style.transform = "scale(1)";
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── PWA Install ──
+    let deferredPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById("install-banner").classList.add("show");
+    });
+
+    document.getElementById("install-btn").addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById("install-banner").classList.remove("show");
+    });
+
+    document.getElementById("dismiss-btn").addEventListener("click", () => {
+      document.getElementById("install-banner").classList.remove("show");
+    });
+
+    // iOS Safari hint
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+                      || window.navigator.standalone;
+
+    if (isIOS && !isStandalone) {
+      // Show hint after 3 seconds
+      setTimeout(() => {
+        document.getElementById("ios-hint").classList.add("show");
+      }, 3000);
+    }
+
+    document.getElementById("ios-hint-close").addEventListener("click", () => {
+      document.getElementById("ios-hint").classList.remove("show");
+    });
+
+    // ── Service Worker ──
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+
+    // Enter key to calculate
+    document.getElementById("gramInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") calculate();
+    });
+  </script>
+</body>
+</html>
